@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Frame with Text and Buttons</title>
+    <link rel="stylesheet" href="/static/whole.css">
+</head>
+<body>
+
+    <div class="header">
+        <div class="hamburger" onclick="toggleMenu()">
+            <div></div>
+            <div></div>
+            <div></div>
+        </div>
+        <div class="logo-container">
+            <img src="/static/logo-removebg-preview.png" alt="Logo" class="logo">
+        </div>
+    </div>
+
+    <nav class="nav-links" id="nav-links">
+        <a href="#home" class="nav-link">Home</a>
+        <a href="/about" class="nav-link">About</a>
+        <a href="#services" class="nav-link">Services</a>
+        <a href="#contact" class="nav-link">Contact</a>
+        <a href="/logout" class="nav-link">Logout</a>
+    </nav>
+
+    <div class="video-container">
+        <img src="{{ url_for('video_feed') }}" style="width: 1280px;width:920px;"/>
+    </div>
+
+    <div id="text-container">
+        <div class="text-item">
+            <button class="button" id="left-base">Left</button>
+            <span>BASE</span>
+            <button class="button" id="right-base">Right</button>
+        </div>
+        <div class="text-item">
+            <button class="button" id="left-shoulder">Left</button>
+            <span>SHOULDER</span>
+            <button class="button" id="right-shoulder">Right</button>
+        </div>
+        <div class="text-item">
+            <button class="button" id="left-elbow">Left</button>
+            <span>ELBOW</span>
+            <button class="button" id="right-elbow">Right</button>
+        </div>
+        <div class="text-item">
+            <button class="button" id="left-wrist">Left</button>
+            <span>WRIST</span>
+            <button class="button" id="right-wrist">Right</button>
+        </div>
+        <div class="text-item">
+            <button class="button" id="open-fingers">OPEN</button>
+            <span>FINGERS</span>
+            <button class="button" id="close-fingers">CLOSE</button>
+        </div>
+        <div class="text-item">
+            <button class="button" id="hold-toggle">Hold: OFF</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.4.0/socket.io.min.js"></script>
+   
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const socket = io('http://127.0.0.1:6550');
+            let positions = [0, 0, 0, 0, 0];
+            let resetTimer = null;
+            let intervalId = null;
+            let holdIntervalId = null; // Interval for hold
+            let isHoldActive = false; // Hold toggle state
+    
+            function updatePosition(index, change) {
+                positions[index] += change;
+                socket.emit('update_positions', positions);
+                console.log(positions);
+                positions = [0, 0, 0, 0, 0];
+                socket.emit('update_positions', positions);
+            }
+    
+            function resetPosition() {
+                resetTimer = setTimeout(() => {
+                    positions = [0, 0, 0, 0, 0];
+                    socket.emit('update_positions', positions);
+                }, 300);
+            }
+    
+            resetPosition();
+    
+            function toggleMenu() {
+                const navLinks = document.getElementById('nav-links');
+                navLinks.style.display = navLinks.style.display === 'flex' ? 'none' : 'flex';
+            }
+    
+            function startContinuousUpdate(index, change) {
+                intervalId = setInterval(function () {
+                    updatePosition(index, change);
+                }, 200);
+            }
+    
+            function stopContinuousUpdate() {
+                if (intervalId) {
+                    clearInterval(intervalId);
+                }
+            }
+    
+            // Toggle Hold functionality
+            function toggleHold() {
+                const holdButton = document.getElementById('hold-toggle');
+                isHoldActive = !isHoldActive;
+    
+                if (isHoldActive) {
+                    holdButton.textContent = "Hold: ON";
+                    holdIntervalId = setInterval(() => {
+                        socket.emit('hold', 1);
+                    }, 100);
+                } else {
+                    holdButton.textContent = "Hold: OFF";
+                    if (holdIntervalId) {
+                        clearInterval(holdIntervalId);
+                        holdIntervalId = null;
+                    }
+                }
+            }
+    
+            document.getElementById("left-base").addEventListener("mousedown", function () {
+                startContinuousUpdate(0, -1);
+            });
+            document.getElementById("right-base").addEventListener("mousedown", function () {
+                startContinuousUpdate(0, 1);
+            });
+            document.getElementById("left-shoulder").addEventListener("mousedown", function () {
+                startContinuousUpdate(1, -1);
+            });
+            document.getElementById("right-shoulder").addEventListener("mousedown", function () {
+                startContinuousUpdate(1, 1);
+            });
+            document.getElementById("left-elbow").addEventListener("mousedown", function () {
+                startContinuousUpdate(2, -1);
+            });
+            document.getElementById("right-elbow").addEventListener("mousedown", function () {
+                startContinuousUpdate(2, 1);
+            });
+            document.getElementById("left-wrist").addEventListener("mousedown", function () {
+                startContinuousUpdate(3, -1);
+            });
+            document.getElementById("right-wrist").addEventListener("mousedown", function () {
+                startContinuousUpdate(3, 1);
+            });
+            document.getElementById("open-fingers").addEventListener("mousedown", function () {
+                startContinuousUpdate(4, 1);
+            });
+            document.getElementById("close-fingers").addEventListener("mousedown", function () {
+                startContinuousUpdate(4, -1);
+            });
+    
+            document.getElementById("left-base").addEventListener("mouseup", stopContinuousUpdate);
+            document.getElementById("right-base").addEventListener("mouseup", stopContinuousUpdate);
+            document.getElementById("left-shoulder").addEventListener("mouseup", stopContinuousUpdate);
+            document.getElementById("right-shoulder").addEventListener("mouseup", stopContinuousUpdate);
+            document.getElementById("left-elbow").addEventListener("mouseup", stopContinuousUpdate);
+            document.getElementById("right-elbow").addEventListener("mouseup", stopContinuousUpdate);
+            document.getElementById("left-wrist").addEventListener("mouseup", stopContinuousUpdate);
+            document.getElementById("right-wrist").addEventListener("mouseup", stopContinuousUpdate);
+            document.getElementById("open-fingers").addEventListener("mouseup", stopContinuousUpdate);
+            document.getElementById("close-fingers").addEventListener("mouseup", stopContinuousUpdate);
+    
+            document.querySelectorAll(".button").forEach(function (button) {
+                button.addEventListener("mouseleave", stopContinuousUpdate);
+            });
+    
+            document.getElementById("hold-toggle").addEventListener("click", toggleHold);
+        });
+    </script>
+      
+</body>
+</html>
